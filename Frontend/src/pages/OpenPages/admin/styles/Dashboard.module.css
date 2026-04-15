@@ -1,0 +1,267 @@
+/* =========================
+BASE CONTAINER
+========================= */
+.container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto;
+  background:
+    radial-gradient(circle at 20% 20%, #1cb39422, transparent 40%),
+    radial-gradient(circle at 80% 0%, #0ea5a422, transparent 40%), #f4f6f8;
+}
+
+/* =========================
+TOP BAR
+========================= */
+.topbar {
+  height: 60px;
+  background: linear-gradient(135deg, #1cb394, #0ea5a4);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.logo {
+  height: 30px;
+}
+
+/* =========================
+BODY LAYOUT
+========================= */
+.body {
+  flex: 1;
+  display: flex;
+}
+
+/* =========================
+SIDEBAR
+========================= */
+.sidebar {
+  width: 220px;
+  background: linear-gradient(180deg, #0f0f0f, #1a1a1a);
+  padding: 20px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* MENU ITEM */
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  color: #d1d5db;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.menuItem span {
+  font-size: 13px;
+}
+
+.menuItem:hover {
+  background: rgba(28, 179, 148, 0.15);
+  color: #1cb394;
+}
+
+.menuItem:active {
+  transform: scale(0.95);
+}
+
+.active {
+  background: linear-gradient(135deg, #1cb394, #0ea5a4);
+  color: white;
+  box-shadow: 0 6px 20px rgba(28, 179, 148, 0.35);
+}
+
+/* =========================
+MAIN CONTENT
+========================= */
+.main {
+  flex: 1;
+  padding: 30px;
+}
+
+.heading {
+  font-size: 24px;
+  margin-bottom: 20px;
+  font-weight: 600;
+}
+
+/* =========================
+CARD GRID
+========================= */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+}
+
+/* =========================
+CARD
+========================= */
+.card {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(12px);
+  border-radius: 16px;
+  padding: 22px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  position: relative;
+  overflow: hidden;
+}
+
+/* top accent */
+.card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 3px;
+  width: 100%;
+  background: #1cb394;
+  transform: scaleX(0);
+  transition: 0.3s;
+}
+
+.card:hover::before {
+  transform: scaleX(1);
+}
+
+/* shine effect */
+.card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    120deg,
+    transparent,
+    rgba(28, 179, 148, 0.2),
+    transparent
+  );
+  opacity: 0;
+  transition: 0.4s;
+}
+
+.card:hover::after {
+  opacity: 1;
+}
+
+.card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
+}
+
+.card:active {
+  transform: scale(0.97);
+}
+
+.cardIcon {
+  font-size: 30px;
+  color: #1cb394;
+  margin-bottom: 10px;
+}
+
+.card h3 {
+  margin-bottom: 4px;
+  font-size: 16px;
+}
+
+.card p {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+/* =========================
+TABLET
+========================= */
+@media (max-width: 900px) {
+  .sidebar {
+    width: 180px;
+  }
+
+  .main {
+    padding: 20px;
+  }
+}
+
+/* =========================
+MOBILE
+========================= */
+@media (max-width: 600px) {
+  .body {
+    flex-direction: column;
+  }
+
+  /* bottom nav */
+  .sidebar {
+    flex-direction: row;
+    width: 100%;
+    height: 65px;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    padding: 0;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 1000;
+  }
+
+  .menuItem {
+    flex-direction: column;
+    gap: 3px;
+    font-size: 12px;
+    padding: 6px;
+  }
+
+  .menuItem span {
+    font-size: 10px;
+  }
+
+  .main {
+    padding: 15px;
+    padding-bottom: 85px; /* space for nav */
+  }
+
+  .heading {
+    font-size: 20px;
+  }
+
+  .cards {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .card {
+    padding: 18px;
+  }
+
+  .cardIcon {
+    font-size: 26px;
+  }
+}

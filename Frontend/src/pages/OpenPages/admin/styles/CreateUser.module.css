@@ -1,0 +1,126 @@
+/* PAGE */
+.page {
+  min-height: 100vh;
+  background: url("/images/oil-bg.jpg") no-repeat center/cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  position: relative;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+}
+
+/* CARD */
+.card {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 360px; /* 🔽 smaller */
+  max-height: 85vh; /* 🔥 enables scroll */
+  overflow-y: auto; /* 🔥 scroll inside */
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  border-radius: 14px;
+  padding: 22px 18px;
+  color: #fff;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* custom scrollbar */
+.card::-webkit-scrollbar {
+  width: 6px;
+}
+.card::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+}
+
+/* HEADER */
+.header {
+  text-align: center;
+  margin-bottom: 14px;
+}
+
+.logo {
+  width: 45px; /* 🔽 smaller */
+  margin-bottom: 6px;
+}
+
+.header h2 {
+  font-size: 20px;
+  margin-bottom: 4px;
+}
+
+.subtitle {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+/* FORM */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px; /* 🔽 tighter */
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.inputGroup label {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+/* INPUTS */
+input,
+select {
+  padding: 9px 10px;
+  border-radius: 7px;
+  border: none;
+  outline: none;
+  font-size: 13px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+input:focus,
+select:focus {
+  outline: 2px solid #4f9cff;
+}
+
+/* BUTTON */
+.button {
+  margin-top: 8px;
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(135deg, #4f9cff, #6c5ce7);
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.button:hover {
+  transform: translateY(-1px);
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 📱 MOBILE */
+@media (max-height: 700px) {
+  .card {
+    max-height: 90vh;
+  }
+}

@@ -1,0 +1,97 @@
+/* Container */
+.container {
+  padding: 24px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+/* Table Wrapper */
+.tableContainer {
+  margin-top: 20px;
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #eaeaea;
+  overflow: hidden;
+}
+
+/* Table */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* Header */
+.thead {
+  background: #f9fafb;
+}
+
+.th {
+  text-align: left;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 14px;
+  color: #666;
+  border-bottom: 1px solid #eee;
+}
+
+/* Rows */
+.tr {
+  transition: all 0.2s ease;
+}
+
+.tr:hover {
+  background: #f9fafb;
+}
+
+/* Cells */
+.td {
+  padding: 14px;
+  font-size: 14px;
+  border-bottom: 1px solid #f3f3f3;
+}
+
+/* Rank */
+.rank {
+  font-weight: 600;
+  color: #888;
+}
+
+/* Highlight best agent */
+.topAgent {
+  background: #f0fdf4;
+}
+
+/* Name */
+.nameCell {
+  font-weight: 500;
+}
+
+/* Subtext */
+.subText {
+  font-size: 12px;
+  color: #888;
+}
+
+/* Colors */
+.green {
+  color: #22c55e;
+}
+
+.orange {
+  color: #f59e0b;
+}
+
+.red {
+  color: #ef4444;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .tableContainer {
+    overflow-x: auto;
+  }
+}
