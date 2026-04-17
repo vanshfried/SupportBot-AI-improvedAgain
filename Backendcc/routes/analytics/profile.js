@@ -24,6 +24,7 @@ router.get("/", async (req, res) => {
         u.name,
 
         COALESCE(msg.message_count, 0) AS message_count,
+        COALESCE(recv.received_count, 0) AS messages_received,  -- ✅ ADD THIS
         COALESCE(conv.closed_count, 0) AS conversations_closed,
         COALESCE(ROUND(resp.avg_response_time), 0) AS avg_response_time,
         COALESCE(ROUND(frt.first_response_time), 0) AS first_response_time
@@ -37,6 +38,38 @@ router.get("/", async (req, res) => {
         WHERE sender_type = 'agent'
         GROUP BY sender_id
       ) msg ON msg.sender_id = u.id
+
+      -- 📥 messages received AFTER FIRST HUMAN agent reply
+LEFT JOIN (
+  SELECT 
+    agent_id,
+    COUNT(*) AS received_count
+  FROM (
+    SELECT 
+      c.id,
+      first_agent.agent_id,
+      m.id
+
+    FROM conversations c
+
+    JOIN LATERAL (
+      SELECT sender_id AS agent_id, created_at
+      FROM messages
+      WHERE conversation_id = c.id
+        AND sender_type = 'agent'
+        AND sender_id IS NOT NULL
+      ORDER BY created_at ASC
+      LIMIT 1
+    ) first_agent ON TRUE
+
+    JOIN messages m
+      ON m.conversation_id = c.id
+      AND m.direction = 'incoming'
+      AND m.created_at > first_agent.created_at
+
+  ) t
+  GROUP BY agent_id
+) recv ON recv.agent_id = u.id
 
       -- ✅ closed
       LEFT JOIN (

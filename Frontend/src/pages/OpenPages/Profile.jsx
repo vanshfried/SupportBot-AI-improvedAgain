@@ -83,6 +83,7 @@ export default function Profile() {
           value={user.conversations_closed}
           compareEl={compare(user.conversations_closed, company.avg_closed)}
         />
+        <Card title="Messages Received" value={user.messages_received} />
 
         <Card
           title="Avg Response"
