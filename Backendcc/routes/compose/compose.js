@@ -2,7 +2,11 @@ import express from "express";
 import multer from "multer";
 import fs from "fs";
 import { pool } from "../../db.js";
-import { sendMessage, uploadMedia } from "../../services/whatsapp.js";
+import {
+  sendMessage,
+  uploadMedia,
+  sendTemplate,
+} from "../../services/whatsapp.js";
 import { addMessage } from "../../store/conversations.js";
 import { requireAdmin } from "../../middleware/auth.js";
 
@@ -148,11 +152,12 @@ router.post(
 
         // ✅ TEXT ONLY
         if (mediaList.length === 0) {
-          const messageId = await sendMessage(number, message, null);
+          // 🔥 USE TEMPLATE FOR COMPOSE (NEW USERS SAFE)
+          const messageId = await sendTemplate(number);
 
-          if (!messageId) throw new Error("Send failed");
+          if (!messageId) throw new Error("Template send failed");
 
-          await addMessage(number, "outgoing", message, messageId, "sent");
+          await addMessage(number, "outgoing", "[template]", messageId, "sent");
         } else {
           // ✅ MULTIPLE MEDIA
           for (let i = 0; i < mediaList.length; i++) {

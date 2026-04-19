@@ -195,3 +195,41 @@ export async function getMediaUrl(mediaId) {
 
   return data.url;
 }
+
+export async function sendTemplate(to, templateName = "hello_world") {
+  try {
+    const body = {
+      messaging_product: "whatsapp",
+      to,
+      type: "template",
+      template: {
+        name: templateName,
+        language: { code: "en_US" },
+      },
+    };
+
+    const response = await fetch(
+      `${WHATSAPP_BASE}/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data?.messages?.[0]?.id) {
+      console.error("❌ Template send error:", data);
+      throw new Error(data?.error?.message || "Template send failed");
+    }
+
+    return data.messages[0].id;
+  } catch (err) {
+    console.error("❌ sendTemplate error:", err.message);
+    return null;
+  }
+}
