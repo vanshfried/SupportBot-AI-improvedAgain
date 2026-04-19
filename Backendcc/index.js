@@ -13,6 +13,7 @@ import pgSession from "connect-pg-simple";
 import composeRoutes from "./routes/compose/compose.js";
 import analyticsRoutes from "./routes/analytics/analytics.js";
 import ProfileRoutes from "./routes/analytics/profile.js";
+import { runChatExpiry } from "./services/chatExpiry.js";
 const PgSession = pgSession(session);
 dotenv.config();
 
@@ -27,7 +28,7 @@ app.use(
   cors({
     origin: process.env.FRONTEND_URL,
     credentials: true,
-  })
+  }),
 );
 app.use(
   session({
@@ -43,10 +44,10 @@ app.use(
     rolling: true,
     cookie: {
       httpOnly: true,
-      secure: true,          // ✅ MUST be true on HTTPS (Render)
-      sameSite: "none",      // ✅ MUST be none for cross-origin
+      secure: true, // ✅ MUST be true on HTTPS (Render)
+      sameSite: "none", // ✅ MUST be none for cross-origin
       maxAge: 1000 * 60 * 60 * 24 * 7,
-    }
+    },
   }),
 );
 app.get("/", (req, res) => {
@@ -85,6 +86,10 @@ async function startServer() {
     await loadCountries();
     console.log("🌍 Countries loaded");
 
+    // 🔥 RUN EVERY 1 MINUTE
+    setInterval(() => {
+      runChatExpiry();
+    }, 60 * 1000);
     app.listen(PORT, () => {
       console.log(
         `Backend running on http://localhost:${PORT} (Press CTRL+C to stop)`,

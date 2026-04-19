@@ -196,7 +196,7 @@ export async function getMediaUrl(mediaId) {
   return data.url;
 }
 
-export async function sendTemplate(to, templateName = "hello_world") {
+export async function sendTemplate(to, templateName = "hello") {
   try {
     const body = {
       messaging_product: "whatsapp",
