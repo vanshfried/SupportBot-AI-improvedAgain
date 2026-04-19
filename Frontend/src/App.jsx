@@ -3,11 +3,11 @@ import ChatSpace from "./pages/techsupport/ChatSpace";
 import Login from "./pages/OpenPages/Login";
 import CreateUser from "./pages/OpenPages/admin/CreateUser";
 import ProtectedRoute from "./ProtectedRoute";
-import Dashboard from "./pages/OpenPages/admin/Dashboard";
 import Compose from "./pages/techsupport/Compose";
 import AnalyticsArea from "./pages/OpenPages/admin/analytics";
 import DepartmentDetails from "./pages/OpenPages/admin/DepartmentDetails";
 import Profile from "./pages/OpenPages/Profile";
+import HomeRedirect from "./pages/HomeRedirect";
 function App() {
   return (
     <Router>
@@ -19,8 +19,8 @@ function App() {
         <Route
           path="/"
           element={
-            <ProtectedRoute allowedRoles={["admin", "superadmin"]}>
-              <Dashboard />
+            <ProtectedRoute allowedRoles={["support", "admin", "superadmin"]}>
+              <HomeRedirect />
             </ProtectedRoute>
           }
         />

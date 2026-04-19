@@ -11,6 +11,11 @@ function Compose() {
   const [files, setFiles] = useState([]);
   const [previews, setPreviews] = useState([]);
   const [showSidebar, setShowSidebar] = useState(false);
+  const [popup, setPopup] = useState({
+    show: false,
+    type: "",
+    message: "",
+  });
 
   const fileInputRef = useRef(null);
 
@@ -82,7 +87,11 @@ function Compose() {
       !numberList.length ||
       (!(message && message.trim()) && files.length === 0)
     ) {
-      return alert("Add numbers + message or file");
+      return setPopup({
+        show: true,
+        type: "error",
+        message: "Add numbers + message or file",
+      });
     }
 
     try {
@@ -108,17 +117,13 @@ function Compose() {
       ).length;
 
       // 🔥 collect skipped messages (optional but powerful)
-      const skippedDetails = res.data.results
-        .filter((r) => r.status === "skipped")
-        .map((r) => r.error)
-        .join("\n");
+      
 
-      alert(
-        `✅ Sent: ${sent}\n❌ Failed: ${failed}\n⛔ Skipped: ${skipped}` +
-          (skippedDetails ? `\n\n${skippedDetails}` : ""),
-      );
-
-      alert(`✅ Sent: ${sent} | ❌ Failed: ${failed}`);
+      setPopup({
+        show: true,
+        type: "success",
+        message: `Sent: ${sent} | Failed: ${failed} | Skipped: ${skipped}`,
+      });
 
       setNumbers("");
       setMessage("");
@@ -126,7 +131,11 @@ function Compose() {
       setPreviews([]);
     } catch (err) {
       console.error(err);
-      alert(err?.response?.data?.error || "Failed ❌");
+      setPopup({
+        show: true,
+        type: "error",
+        message: err?.response?.data?.error || "Failed ❌",
+      });
     } finally {
       setLoading(false);
     }
@@ -233,6 +242,17 @@ function Compose() {
           </button>
         </div>
       </div>
+      {popup.show && (
+  <div className={styles.popupOverlay}>
+    <div className={`${styles.popup} ${styles[popup.type]}`}>
+      <p>{popup.message}</p>
+
+      <button onClick={() => setPopup({ ...popup, show: false })}>
+        OK
+      </button>
+    </div>
+  </div>
+)}
     </div>
   );
 }

@@ -6,53 +6,6 @@ import { requireAdmin, requireSuperadmin } from "../../middleware/auth.js";
 
 const router = express.Router();
 
-/**
- * 🔥 ONE TIME: Create superadmin
- */
-router.post("/create", async (req, res) => {
-  const { name, email, password } = req.body;
-
-  try {
-    if (process.env.ALLOW_SUPERADMIN !== "true") {
-      return res.status(403).json({
-        error: "Superadmin creation disabled",
-      });
-    }
-
-    const existing = await pool.query(
-      `SELECT id FROM users WHERE role = 'superadmin'`,
-    );
-
-    if (existing.rows.length > 0) {
-      return res.status(403).json({
-        error: "Superadmin already exists",
-      });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const result = await pool.query(
-      `
-      INSERT INTO users (name, email, password, role)
-      VALUES ($1, $2, $3, 'superadmin')
-      RETURNING id, email, role
-      `,
-      [name, email, hashedPassword],
-    );
-
-    res.json({
-      success: true,
-      user: result.rows[0],
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to create superadmin" });
-  }
-});
-
-/**
- * ➕ Create admin (UPDATED)
- */
 
 router.post("/create-admin", requireSuperadmin, async (req, res) => {
   const { name, email, password, country_id, department_id } = req.body;
