@@ -71,9 +71,7 @@ function Compose() {
     setFiles(combined);
 
     const newPreviews = combined.map((file) =>
-      file.type.startsWith("image/")
-        ? URL.createObjectURL(file)
-        : null,
+      file.type.startsWith("image/") ? URL.createObjectURL(file) : null,
     );
 
     setPreviews(newPreviews);
@@ -102,7 +100,23 @@ function Compose() {
       const res = await API.post("/compose/send", formData);
 
       const sent = res.data.results.filter((r) => r.status === "sent").length;
-      const failed = res.data.results.filter((r) => r.status === "failed").length;
+      const failed = res.data.results.filter(
+        (r) => r.status === "failed",
+      ).length;
+      const skipped = res.data.results.filter(
+        (r) => r.status === "skipped",
+      ).length;
+
+      // 🔥 collect skipped messages (optional but powerful)
+      const skippedDetails = res.data.results
+        .filter((r) => r.status === "skipped")
+        .map((r) => r.error)
+        .join("\n");
+
+      alert(
+        `✅ Sent: ${sent}\n❌ Failed: ${failed}\n⛔ Skipped: ${skipped}` +
+          (skippedDetails ? `\n\n${skippedDetails}` : ""),
+      );
 
       alert(`✅ Sent: ${sent} | ❌ Failed: ${failed}`);
 
@@ -121,10 +135,7 @@ function Compose() {
   return (
     <div className={styles.container}>
       {showSidebar && (
-        <div
-          className={styles.overlay}
-          onClick={() => setShowSidebar(false)}
-        />
+        <div className={styles.overlay} onClick={() => setShowSidebar(false)} />
       )}
 
       <div
@@ -153,9 +164,7 @@ function Compose() {
           />
         </div>
 
-        <div className={styles.count}>
-          {numberList.length} recipients
-        </div>
+        <div className={styles.count}>{numberList.length} recipients</div>
       </div>
 
       <div className={styles.chat}>
@@ -181,9 +190,7 @@ function Compose() {
                 {previews[i] ? (
                   <img src={previews[i]} alt="preview" />
                 ) : (
-                  <div className={styles.filePreview}>
-                    📎 {file.name}
-                  </div>
+                  <div className={styles.filePreview}>📎 {file.name}</div>
                 )}
               </div>
             ))}

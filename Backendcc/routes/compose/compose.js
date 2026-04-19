@@ -1,7 +1,7 @@
 import express from "express";
 import multer from "multer";
 import fs from "fs";
-
+import { pool } from "../../db.js";
 import { sendMessage, uploadMedia } from "../../services/whatsapp.js";
 import { addMessage } from "../../store/conversations.js";
 import { requireAdmin } from "../../middleware/auth.js";
@@ -69,7 +69,7 @@ const normalizeNumbers = (input) => {
 router.post(
   "/send",
   requireAdmin,
-  upload.array("files", 5), // ✅ IMPORTANT CHANGE
+  upload.array("files", 5),
   async (req, res) => {
     let { to, message } = req.body;
 
@@ -106,7 +106,7 @@ router.post(
             filename: uploadRes.filename,
           });
 
-          safeUnlink(file.path); // cleanup immediately
+          safeUnlink(file.path);
         }
       } catch (err) {
         req.files.forEach((f) => safeUnlink(f.path));
@@ -121,6 +121,29 @@ router.post(
 
     for (const number of numbers) {
       try {
+        console.log(`📨 Processing ${number}...`);
+
+        // 🚫 BLOCK IF ACTIVE CHAT EXISTS
+        const activeCheck = await pool.query(
+          `SELECT id FROM conversations
+           WHERE sender_id = $1
+           AND status = 'active'
+           LIMIT 1`,
+          [number],
+        );
+
+        if (activeCheck.rows.length > 0) {
+          console.log(`⛔ Skipped ${number} (active chat)`);
+
+          results.push({
+            number,
+            status: "skipped",
+            error: `It looks like ${number} has an active chat. Try to compose/advertise later.`,
+          });
+
+          continue; // 🔥 skip sending
+        }
+
         console.log(`📨 Sending to ${number}...`);
 
         // ✅ TEXT ONLY
@@ -131,19 +154,18 @@ router.post(
 
           await addMessage(number, "outgoing", message, messageId, "sent");
         } else {
-          // ✅ MULTIPLE MEDIA (WhatsApp compliant)
+          // ✅ MULTIPLE MEDIA
           for (let i = 0; i < mediaList.length; i++) {
             const media = mediaList[i];
 
             const messageId = await sendMessage(
               number,
-              i === 0 ? message : null, // caption only once
+              i === 0 ? message : null,
               media,
             );
 
             if (!messageId) throw new Error("Send failed");
 
-            // 🔥 rate safety (IMPORTANT)
             await new Promise((r) => setTimeout(r, 150));
           }
 
@@ -167,7 +189,7 @@ router.post(
         });
       }
 
-      // 🔥 per-user delay (prevents rate limit)
+      // 🔥 per-user delay
       await new Promise((r) => setTimeout(r, 120));
     }
 
@@ -179,6 +201,7 @@ router.post(
       total: numbers.length,
       sent: results.filter((r) => r.status === "sent").length,
       failed: results.filter((r) => r.status === "failed").length,
+      skipped: results.filter((r) => r.status === "skipped").length, // ✅ NEW
       results,
     });
   },
