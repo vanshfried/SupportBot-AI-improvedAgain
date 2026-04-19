@@ -104,8 +104,7 @@ router.post("/reply", upload.array("files", 5), async (req, res) => {
         await pool.query(
           `UPDATE conversations
            SET assigned_to = $1,
-               assigned_role = $2,
-              assigned_at = NOW()   -- 🔥 ADD THIS
+               assigned_role = $2
            WHERE id = $3 AND assigned_to IS NULL`,
           [user.id, user.role, conversation.id],
         );
@@ -116,8 +115,7 @@ router.post("/reply", upload.array("files", 5), async (req, res) => {
         const result = await pool.query(
           `UPDATE conversations
            SET assigned_to = $1,
-               assigned_role = $2,
-               assigned_at = NOW()   -- 🔥 ADD THIS
+               assigned_role = $2
            WHERE id = $3
            AND last_agent_reply_at < NOW() - INTERVAL '20 minutes'
            RETURNING id`,
@@ -151,8 +149,7 @@ router.post("/reply", upload.array("files", 5), async (req, res) => {
       await pool.query(
         `UPDATE conversations
          SET assigned_to = $1,
-             assigned_role = $2,
-              assigned_at = NOW()   -- 🔥 ADD THIS
+             assigned_role = $2
          WHERE id = $3`,
         [user.id, user.role, conversation.id],
       );
@@ -165,8 +162,7 @@ router.post("/reply", upload.array("files", 5), async (req, res) => {
       await pool.query(
         `UPDATE conversations
          SET assigned_to = $1,
-             assigned_role = $2,
-             assigned_at = NOW()   -- 🔥 ADD THIS
+             assigned_role = $2
          WHERE id = $3`,
         [user.id, user.role, conversation.id],
       );
@@ -369,16 +365,13 @@ router.post("/reopen", async (req, res) => {
     // =========================
     const result = await pool.query(
       `UPDATE conversations
-   SET status = 'active',
-       ended_at = NULL,
-       assigned_to = NULL,
-       assigned_role = NULL,
-       started_at = NOW(),
-       assigned_at = NULL,
-       last_agent_reply_at = NULL
-   WHERE id = $1
-   AND status = 'ended'
-   RETURNING id`,
+       SET status = 'active',
+           ended_at = NULL,
+           assigned_to = NULL,
+           assigned_role = NULL
+       WHERE id = $1
+       AND status = 'ended'
+       RETURNING id`,
       [conversation_id],
     );
 
@@ -465,8 +458,7 @@ router.post("/assign", async (req, res) => {
         const result = await pool.query(
           `UPDATE conversations
            SET assigned_to = $1,
-               assigned_role = $2,
-               assigned_at = NOW()  -- 🔥 ADD THIS
+               assigned_role = $2
            WHERE id = $3 AND assigned_to IS NULL
            RETURNING id, assigned_to, assigned_role`,
           [user.id, user.role, conversation_id],
@@ -488,8 +480,7 @@ router.post("/assign", async (req, res) => {
       const result = await pool.query(
         `UPDATE conversations
          SET assigned_to = $1,
-             assigned_role = $2,
-             assigned_at = NOW()   -- 🔥 ADD THIS
+             assigned_role = $2
          WHERE id = $3
          AND last_agent_reply_at < NOW() - INTERVAL '20 minutes'
          RETURNING id, assigned_to, assigned_role`,
@@ -530,8 +521,7 @@ router.post("/assign", async (req, res) => {
         const result = await pool.query(
           `UPDATE conversations
            SET assigned_to = $1,
-               assigned_role = $2,
-               assigned_at = NOW()   -- 🔥 ADD THIS
+               assigned_role = $2
            WHERE id = $3
            RETURNING id, assigned_to, assigned_role`,
           [user.id, user.role, conversation_id],
@@ -554,8 +544,7 @@ router.post("/assign", async (req, res) => {
         const result = await pool.query(
           `UPDATE conversations
            SET assigned_to = $1,
-               assigned_role = $2,
-               assigned_at = NOW()   -- 🔥 ADD THIS
+               assigned_role = $2
            WHERE id = $3
            RETURNING id, assigned_to, assigned_role`,
           [user.id, user.role, conversation_id],
@@ -686,6 +675,12 @@ router.post("/end", async (req, res) => {
       return res.status(409).json({
         error: "Chat already ended",
       });
+      // 📤 Notify user
+      await sendMessage(
+        c.sender_id,
+        "🛑 This chat has been ended by the agent.",
+        null
+      );
     }
 
     // 🔁 RESET AI STATE HERE (ONLY HERE)
@@ -693,9 +688,12 @@ router.post("/end", async (req, res) => {
       if (mod.resetUserState) {
         mod.resetUserState(c.sender_id);
       }
-    });
 
-    return res.json({ success: true });
+      // ✅ ALSO reset greeting
+      if (mod.greetedUsers) {
+        mod.greetedUsers[c.sender_id] = false;
+      }
+    });
 
     return res.json({ success: true });
   } catch (err) {

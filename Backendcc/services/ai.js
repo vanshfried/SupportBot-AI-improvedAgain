@@ -9,6 +9,10 @@ import { pool } from "../db.js"; // ✅ ADD
 
 let departments = []; // 🔥 will replace static import
 
+function isValidName(name) {
+  return /^[a-zA-Z\s]{2,50}$/.test(name.trim());
+}
+
 // load once
 async function loadDepartments() {
   const res = await pool.query(`SELECT id, name FROM departments ORDER BY id`);
@@ -28,7 +32,8 @@ const openai = new OpenAI({
 
 const userState = {};
 const predictedDept = {};
-const greetedUsers = {};
+export const greetedUsers = {};
+const collectedInfo = {};
 
 import { yesWords, noWords } from "../services/departments.js";
 
@@ -37,13 +42,32 @@ import { yesWords, noWords } from "../services/departments.js";
 ========================= */
 
 export async function processMessage(user, text) {
-  // 🚫 HARD BLOCK: if human is active, AI should not respond
-if (userState[user] === "human_active") {
-  return null;
-}
+
   const msg = text.toLowerCase().trim();
 
-  
+  // 🔥 FORCE RESET ON NEW GREETING AFTER CHAT ENDED
+if (isGreeting(msg) && !userState[user]) {
+  greetedUsers[user] = false;
+}
+
+  // 🔥 END CONVERSATION (MUST BE FIRST BEFORE HUMAN BLOCK)
+  if (
+    userState[user] === "human_active" &&
+    msg.includes("end conversation")
+  ) {
+    delete userState[user];
+    delete predictedDept[user];
+    delete collectedInfo[user];
+    greetedUsers[user] = false;
+
+    return "🛑 The conversation was ended by the crew.";
+  }
+
+  // 🚫 HARD BLOCK: if human is active, AI should not respond
+  if (userState[user] === "human_active") {
+    return null;
+  }
+
   if (!departments.length) {
     await loadDepartments();
   }
@@ -59,8 +83,22 @@ if (userState[user] === "human_active") {
   /* AI CHAT MODE */
 
   if (userState[user] === "ai_chat") {
-    return await runAIChat(user, text);
+
+  const department = await predictDepartment(text);
+
+  if (department.name !== "General Inquiry") {
+    predictedDept[user] = department;
+    userState[user] = "awaiting_confirmation";
+
+    return `It looks like you want *${department.name}*.
+
+Do you want me to connect you?
+
+Reply Yes or No`;
   }
+
+  return await runAIChat(user, text);
+}
 
   /* CONFIRMATION */
 
@@ -68,19 +106,21 @@ if (userState[user] === "human_active") {
     if (yesWords.some((w) => msg.includes(w))) {
       const dept = predictedDept[user];
 
+      // General Inquiry → AI chat
       if (dept.name === "General Inquiry") {
         userState[user] = "ai_chat";
-
         return "Sure! I'll help you with that.";
       }
 
-      startHumanSession(user, dept.id); // 🔥 ONLY CHANGE
+      // Other departments → start data collection
+      collectedInfo[user] = {
+        deptId: dept.id,
+        deptName: dept.name
+      };
 
-      userState[user] = "human_active";
-      delete userState[user];
-      delete predictedDept[user];
+      userState[user] = "awaiting_user_name";
 
-      return `✅ Connecting you to *${dept.name}* team. A human will reply shortly.`;
+      return "Great 👍 Please enter your full name:";
     }
 
     if (noWords.some((w) => msg.includes(w))) {
@@ -96,6 +136,45 @@ if (userState[user] === "human_active") {
     }
 
     return "Please reply Yes or No.";
+  }
+
+  /* =========================
+     USER NAME COLLECTION
+  ========================= */
+
+  if (userState[user] === "awaiting_user_name") {
+    if (!isValidName(text)) {
+      return "❌ Please enter a valid name (letters only).";
+    }
+
+    collectedInfo[user].name = text.trim();
+    userState[user] = "awaiting_client_name";
+
+    return "Thanks! Now please enter your client name:";
+  }
+
+  /* =========================
+     CLIENT NAME COLLECTION
+  ========================= */
+
+  if (userState[user] === "awaiting_client_name") {
+    if (!isValidName(text)) {
+      return "❌ Please enter a valid client name (letters only).";
+    }
+
+    const info = collectedInfo[user];
+
+    info.clientName = text.trim();
+
+    // 👉 NOW CONNECT HUMAN HERE
+    startHumanSession(user, info.deptId);
+
+    userState[user] = "human_active";
+
+    delete predictedDept[user];
+    delete collectedInfo[user];
+
+    return `✅ Connecting you to *${info.deptName}* team.\nName: ${info.name}\nClient: ${info.clientName}`;
   }
 
   /* MANUAL SELECT */
@@ -118,7 +197,6 @@ if (userState[user] === "human_active") {
     startHumanSession(user, selectedDept.id); // 🔥 ONLY CHANGE
 
     userState[user] = "human_active";
-    delete userState[user];
     delete predictedDept[user];
 
     return `✅ Connecting you to *${selectedDept.name}* team. A human will reply shortly.`;
@@ -153,18 +231,23 @@ async function runAIChat(user, text) {
   formatted.push(`User: ${text}`);
 
   const prompt = `
-You are a friendly company WhatsApp assistant.
+You are a WhatsApp assistant for GET Global Group.
 
-Language rules:
-- Detect the user's language automatically.
-- The user may speak English, Hindi, Hinglish, or a mix.
-- Always reply in the SAME language the user used.
-- If the message is mixed, reply in a natural mixed style.
+STRICT LANGUAGE RULE (VERY IMPORTANT):
+- Detect user's language
+- Reply ONLY in english language
+- If Hindi → reply english 
+- If Hinglish → reply english
 
-Other rules:
-- Keep answers short
-- Maximum 3 sentences
-- Be professional
+Company:
+- Website: https://getglobalgroup.com/
+- Services: Expertise Based Services, Procurement And Supply Chain Management, Integrated Maintenance Solutions, On Demand Energy Service
+
+Rules:
+- Max 3 sentences
+- professional and warm tone
+- If you don't know the answer, say "Sorry, I don't have that information right now."
+
 
 Conversation:
 ${formatted.join("\n")}
@@ -192,21 +275,21 @@ async function predictDepartment(text) {
   const deptList = departments.map((d) => d.name).join("\n");
 
   const prompt = `
-You are an AI that routes messages to departments.
+You are a smart routing AI.
 
-The user may write in:
-- English
-- Hindi
-- Hinglish
-- Mixed language
+Detect if user INTENDS to talk to a department.
 
-Understand the meaning and choose the best department.
+Examples:
+- "I need visa help" → Visa Department
+- "connect me to sales" → Sales
+- "pricing?" → Sales
 
-Return ONLY the department name from this list:
+Return ONLY department name.
 
+Departments:
 ${deptList}
 
-User message:
+Message:
 "${text}"
 `;
 
@@ -229,7 +312,19 @@ User message:
     return departments.find((d) => d.name === "General Inquiry");
   }
 }
+
+
+function isGreeting(msg) {
+  return ["hi", "hello", "hey", "start"].some((w) =>
+    msg.includes(w)
+  );
+}
+
+
 export function resetUserState(user) {
   delete userState[user];
   delete predictedDept[user];
+  delete collectedInfo[user];
+
+  greetedUsers[user] = false;
 }
