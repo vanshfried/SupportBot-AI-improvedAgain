@@ -7,8 +7,7 @@
   height: 100vh;
   background:
     radial-gradient(circle at 10% 10%, #1cb39422, transparent 40%),
-    radial-gradient(circle at 90% 0%, #0ea5a422, transparent 40%),
-    #eef2f3;
+    radial-gradient(circle at 90% 0%, #0ea5a422, transparent 40%), #eef2f3;
   font-family: "Segoe UI", sans-serif;
 }
 
@@ -87,9 +86,15 @@
 }
 
 @keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(28, 179, 148, 0.7); }
-  70% { box-shadow: 0 0 0 8px rgba(28, 179, 148, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(28, 179, 148, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(28, 179, 148, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(28, 179, 148, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(28, 179, 148, 0);
+  }
 }
 
 .roleTag {
@@ -341,8 +346,118 @@
   cursor: pointer;
 }
 
-@media (max-width: 700px) {
+.errorBox {
+  background: #ffecec;
+  color: #d8000c;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin: 8px 0;
+  border: 1px solid #f5c2c2;
+  font-size: 13px;
+}
 
+.successBox {
+  background: #e6ffed;
+  color: #1a7f37;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin: 8px 0;
+  border: 1px solid #b7ebc6;
+  font-size: 13px;
+}
+/* RIGHT PANEL */
+.requestPanel {
+  width: 280px;
+  background: #f9fafb;
+  border-left: 1px solid #e5e7eb;
+  padding: 12px;
+  overflow-y: auto;
+}
+
+/* HEADER */
+.requestHeader {
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: 10px;
+  color: #111827;
+}
+
+/* CARD */
+.requestCard {
+  background: white;
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+/* TEXT */
+.requestTitle {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.requestMeta {
+  font-size: 12px;
+  color: #555;
+}
+
+.requestChat {
+  font-size: 11px;
+  color: #888;
+  margin-top: 4px;
+}
+
+/* ACTIONS */
+.requestActions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+/* BUTTONS */
+.acceptBtn {
+  flex: 1;
+  background: #22c55e;
+  color: white;
+  border: none;
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.acceptBtn:hover {
+  background: #16a34a;
+}
+
+.rejectBtn {
+  flex: 1;
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.rejectBtn:hover {
+  background: #dc2626;
+}
+
+.requestEmail {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.requestRole {
+  font-size: 11px;
+  color: #6b7280;
+  text-transform: capitalize;
+}
+@media (max-width: 700px) {
   .container {
     max-width: 100%;
     border-radius: 0;

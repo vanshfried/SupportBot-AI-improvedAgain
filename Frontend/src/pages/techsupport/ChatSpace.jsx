@@ -8,6 +8,11 @@ import {
   fetchMessages,
   assignChat,
   reopenChat,
+  sendAssignRequest,
+  getAssignRequests,
+  acceptAssignRequest,
+  rejectAssignRequest,
+  getEligibleUsers,
 } from "../../API/ChatAPI";
 
 function ChatSpace() {
@@ -16,11 +21,21 @@ function ChatSpace() {
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState("");
   const [currentTime, setCurrentTime] = useState(() => Date.now());
+  const [assignUsers, setAssignUsers] = useState([]);
+  const [showAssignModal, setShowAssignModal] = useState(false);
 
+  const [requests, setRequests] = useState([]);
   const [modal, setModal] = useState(null);
 
   // ✅ NEW: mobile view toggle
   const [isMobileView, setIsMobileView] = useState(false);
+
+  const [uiError, setUiError] = useState("");
+  const [uiSuccess, setUiSuccess] = useState("");
+
+  const hasPendingRequest = requests.some(
+    (r) => r.conversation_id === selectedChat?.id && r.status === "pending",
+  );
 
   const currentUser = JSON.parse(localStorage.getItem("user"));
   const messagesEndRef = useRef(null);
@@ -31,13 +46,23 @@ function ChatSpace() {
   const fileInputRef = useRef(null);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTime(Date.now());
-    }, 60000);
+    const loadRequests = async () => {
+      const data = await getAssignRequests();
+      setRequests(data || []);
+    };
 
+    loadRequests();
+    const interval = setInterval(loadRequests, 5000);
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 10000); // every 10 sec
+
+    return () => clearInterval(interval);
+  }, []);
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -197,6 +222,74 @@ function ChatSpace() {
     }
   };
 
+  const handleRequestAssign = async () => {
+    if (!selectedChat) return;
+
+    const users = await getEligibleUsers(selectedChat.id);
+    setAssignUsers(users);
+    setShowAssignModal(true);
+  };
+
+  const handleSelectUser = async (userId) => {
+    try {
+      setUiError("");
+      setUiSuccess("");
+
+      await sendAssignRequest(selectedChat.id, userId);
+
+      setShowAssignModal(false);
+
+      // ✅ instant UI feedback
+      setUiSuccess("Request sent successfully");
+
+      // optional instant state update
+      setRequests((prev) => [
+        ...prev,
+        {
+          conversation_id: selectedChat.id,
+          status: "pending",
+        },
+      ]);
+    } catch (err) {
+      const msg = err.response?.data?.error || "Failed to send request";
+
+      setUiError(msg);
+    }
+  };
+
+  const handleAccept = async (id) => {
+    try {
+      setUiError("");
+      setUiSuccess("");
+
+      await acceptAssignRequest(id);
+
+      setRequests((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, status: "accepted" } : r)),
+      );
+
+      setUiSuccess("Request accepted");
+    } catch (err) {
+      setUiError(err.response?.data?.error || "Accept failed");
+    }
+  };
+
+  const handleReject = async (id) => {
+    try {
+      setUiError("");
+      setUiSuccess("");
+
+      await rejectAssignRequest(id);
+
+      setRequests((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, status: "rejected" } : r)),
+      );
+
+      setUiSuccess("Request rejected");
+    } catch (err) {
+      setUiError(err.response?.data?.error || "Reject failed");
+    }
+  };
   return (
     <div className={styles.container}>
       {/* Sidebar */}
@@ -373,11 +466,21 @@ function ChatSpace() {
             ⚠️ Chat handled by {selectedChat.assigned_role}
           </div>
         )}
+        {uiError && <div className={styles.errorBox}>{uiError}</div>}
+
+        {uiSuccess && <div className={styles.successBox}>{uiSuccess}</div>}
 
         {/* Actions */}
         <div className={styles.actions}>
           <button onClick={handleAssign} disabled={chatState.disableAssign}>
             Assign
+          </button>
+
+          <button
+            onClick={handleRequestAssign}
+            disabled={!chatState.isMine || hasPendingRequest}
+          >
+            {hasPendingRequest ? "Request Sent" : "Transfer"}
           </button>
 
           <button
@@ -444,7 +547,45 @@ function ChatSpace() {
           </button>
         </div>
       </div>
+      {requests.filter((r) => r.status === "pending").length > 0 && (
+        <div className={styles.requestPanel}>
+          <div className={styles.requestHeader}>Transfer Requests</div>
 
+          {requests
+            .filter((r) => r.status === "pending")
+            .map((r) => (
+              <div key={r.id} className={styles.requestCard}>
+                <div className={styles.requestInfo}>
+                  <div className={styles.requestTitle}>Incoming Transfer</div>
+
+                  <div className={styles.requestMeta}>
+                    <div className={styles.requestEmail}>
+                      {r.from_email || "unknown@email"}
+                    </div>
+
+                    <div className={styles.requestRole}>{r.from_role}</div>
+                  </div>
+                </div>
+
+                <div className={styles.requestActions}>
+                  <button
+                    className={styles.acceptBtn}
+                    onClick={() => handleAccept(r.id)}
+                  >
+                    Accept
+                  </button>
+
+                  <button
+                    className={styles.rejectBtn}
+                    onClick={() => handleReject(r.id)}
+                  >
+                    Reject
+                  </button>
+                </div>
+              </div>
+            ))}
+        </div>
+      )}
       {/* 🔥 MODAL */}
       {modal && (
         <div className={styles.modalOverlay}>
@@ -461,6 +602,23 @@ function ChatSpace() {
               </button>
               <button onClick={closeModal}>Cancel</button>
             </div>
+          </div>
+        </div>
+      )}
+      {showAssignModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalBox}>
+            <h3>Select User</h3>
+
+            {assignUsers.map((u) => (
+              <div key={u.id} style={{ margin: "5px 0" }}>
+                <button onClick={() => handleSelectUser(u.id)}>
+                  {u.name} ({u.role})
+                </button>
+              </div>
+            ))}
+
+            <button onClick={() => setShowAssignModal(false)}>Close</button>
           </div>
         </div>
       )}

@@ -66,3 +66,42 @@ export const fetchMessages = async (conversation_id) => {
 
   return res.data;
 };
+
+
+
+/* ========================
+   ASSIGN REQUEST
+======================== */
+export const sendAssignRequest = async (conversation_id, to_user_id) => {
+  const res = await API.post("/agent/assign/request", {
+    conversation_id,
+    to_user_id,
+  });
+  return res.data;
+};
+
+export const acceptAssignRequest = async (request_id) => {
+  const res = await API.post("/agent/assign/accept", { request_id });
+  return res.data;
+};
+
+export const rejectAssignRequest = async (request_id) => {
+  const res = await API.post("/agent/assign/reject", { request_id });
+  return res.data;
+};
+
+/* ========================
+   GET REQUESTS
+======================== */
+export const getAssignRequests = async () => {
+  const res = await API.get("/agent/assign/requests");
+  return res.data;
+};
+
+/* ========================
+   GET ELIGIBLE USERS
+======================== */
+export const getEligibleUsers = async (conversation_id) => {
+  const res = await API.get(`/agent/assign/eligible/${conversation_id}`);
+  return res.data;
+};
