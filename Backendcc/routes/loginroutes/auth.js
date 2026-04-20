@@ -2,7 +2,50 @@
 import express from "express";
 import { pool } from "../../db.js";
 import bcrypt from "bcrypt";
+// 🔥 In-memory login attempt tracker
+const loginAttempts = new Map();
 
+const MAX_FREE_ATTEMPTS = 5;
+const BLOCK_INCREMENT_ATTEMPTS = 3;
+const BLOCK_TIME_MINUTES = 10;
+
+function getKey(req, email) {
+  return email || req.ip;
+}
+
+function getRemainingTime(ms) {
+  return Math.ceil(ms / 60000);
+}
+
+function isBlocked(entry) {
+  return entry?.blockUntil && Date.now() < entry.blockUntil;
+}
+
+function registerFailure(key) {
+  let entry = loginAttempts.get(key) || {
+    count: 0,
+    blockUntil: null,
+  };
+
+  entry.count += 1;
+
+  if (entry.count >= MAX_FREE_ATTEMPTS) {
+    const extraFails = entry.count - MAX_FREE_ATTEMPTS;
+
+    const blocks = 1 + Math.floor(extraFails / BLOCK_INCREMENT_ATTEMPTS);
+
+    const blockTime = blocks * BLOCK_TIME_MINUTES * 60 * 1000;
+
+    entry.blockUntil = Date.now() + blockTime;
+  }
+
+  loginAttempts.set(key, entry);
+  return entry;
+}
+
+function resetAttempts(key) {
+  loginAttempts.delete(key);
+}
 const router = express.Router();
 
 /**
@@ -10,7 +53,17 @@ const router = express.Router();
  */
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
+  const key = getKey(req, email);
+  const entry = loginAttempts.get(key);
 
+  // 🚫 Block check
+  if (isBlocked(entry)) {
+    const remaining = getRemainingTime(entry.blockUntil - Date.now());
+
+    return res.status(429).json({
+      error: `Too many failed attempts. Try again in ${remaining} minute(s)`,
+    });
+  }
   try {
     // 🔒 Basic validation
     if (!email || !password) {
@@ -32,6 +85,16 @@ router.post("/login", async (req, res) => {
 
     // 🔒 Avoid user enumeration
     if (!user) {
+      const updated = registerFailure(key);
+
+      if (isBlocked(updated)) {
+        const remaining = getRemainingTime(updated.blockUntil - Date.now());
+
+        return res.status(429).json({
+          error: `Too many failed attempts. Try again in ${remaining} minute(s)`,
+        });
+      }
+
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
@@ -39,8 +102,19 @@ router.post("/login", async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
+      const updated = registerFailure(key);
+
+      if (isBlocked(updated)) {
+        const remaining = getRemainingTime(updated.blockUntil - Date.now());
+
+        return res.status(429).json({
+          error: `Too many failed attempts. Try again in ${remaining} minute(s)`,
+        });
+      }
+
       return res.status(401).json({ error: "Invalid credentials" });
     }
+    resetAttempts(key);
 
     // 🧠 Build session payload (minimal & safe)
     const sessionUser = {

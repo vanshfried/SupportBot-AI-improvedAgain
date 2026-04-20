@@ -2,8 +2,16 @@ import API from "./api";
 
 /* 🔐 LOGIN */
 export const loginUser = async (data) => {
-  const res = await API.post("/auth/login", data);
-  return res.data;
+  try {
+    const res = await API.post("/auth/login", data);
+    return res.data;
+  } catch (err) {
+    return {
+      success: false,
+      status: err?.response?.status,
+      error: err?.response?.data?.error || err?.message || "Login failed",
+    };
+  }
 };
 
 /* 👤 CURRENT USER */

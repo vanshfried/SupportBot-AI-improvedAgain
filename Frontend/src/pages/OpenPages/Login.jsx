@@ -7,15 +7,17 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
-
+  const [error, setError] = useState("");
   const handleLogin = async () => {
+    setError("");
+
     const res = await loginUser({ email, password });
 
     if (res.success) {
       localStorage.setItem("user", JSON.stringify(res.user));
       navigate("/");
     } else {
-      alert(res.error || "Login failed");
+      setError(res.error || "Login failed");
     }
   };
 
@@ -33,8 +35,7 @@ export default function Login() {
           {/* GREEN PANEL */}
           <div className={styles.left}>
             <div>
-              <p className = {styles.get_login}>GET</p> at <br />
-              a Glance
+              <p className={styles.get_login}>GET</p> at <br />a Glance
             </div>
           </div>
 
@@ -64,6 +65,7 @@ export default function Login() {
             />
 
             {/* LOGIN BUTTON */}
+            {error && <div className={styles.error}>{error}</div>}
             <button className={styles.button} onClick={handleLogin}>
               LOGIN
             </button>
