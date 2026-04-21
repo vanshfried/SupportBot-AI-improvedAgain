@@ -361,12 +361,12 @@ function ChatSpace() {
                     </span>
                   )}
                 <span className={styles.deptBadge}>
-                  Dept: {selectedChat.department_id}
+                  Dept: {selectedChat.department_name || "N/A"}
                 </span>
 
                 {selectedChat.assigned_to ? (
                   <span className={styles.assignedBadge}>
-                    {selectedChat.assigned_role}
+                    {selectedChat.assigned_name} ({selectedChat.assigned_email})
                   </span>
                 ) : (
                   <span className={styles.unassigned}>Unassigned</span>

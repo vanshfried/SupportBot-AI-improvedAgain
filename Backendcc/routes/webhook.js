@@ -217,9 +217,11 @@ router.get("/conversations", async (req, res) => {
           c.*,
           u.name AS assigned_name,
           u.role AS assigned_role,
-          u.email AS assigned_email
+          u.email AS assigned_email,
+          d.name AS department_name
         FROM conversations c
         LEFT JOIN users u ON c.assigned_to = u.id
+LEFT JOIN departments d ON c.department_id = d.id
         ORDER BY c.created_at DESC
       `;
     }
@@ -227,40 +229,44 @@ router.get("/conversations", async (req, res) => {
     // 🧑‍💼 ADMIN → ALL in department
     else if (user.role === "admin") {
       query = `
-        SELECT 
-          c.*,
-          u.name AS assigned_name,
-          u.role AS assigned_role,
-          u.email AS assigned_email
-        FROM conversations c
-        LEFT JOIN users u ON c.assigned_to = u.id
-        WHERE c.department_id = $1
-        ORDER BY c.created_at DESC
-      `;
+    SELECT 
+      c.*,
+      u.name AS assigned_name,
+      u.role AS assigned_role,
+      u.email AS assigned_email,
+      d.name AS department_name
+    FROM conversations c
+    LEFT JOIN users u ON c.assigned_to = u.id
+    LEFT JOIN departments d ON c.department_id = d.id
+    WHERE c.department_id = $1
+    ORDER BY c.created_at DESC
+  `;
       params = [user.department_id];
     }
 
     // 👨‍💻 SUPPORT → hierarchy visibility
     else if (user.role === "support") {
       query = `
-        SELECT 
-          c.*,
-          u.name AS assigned_name,
-          u.role AS assigned_role,
-          u.email AS assigned_email
-        FROM conversations c
-        LEFT JOIN users u ON c.assigned_to = u.id
-        WHERE c.department_id = $1
-        AND c.country_id = $2
-        AND (
-          c.status = 'active'
-          OR (
-            c.status = 'ended'
-            AND c.ended_at > NOW() - INTERVAL '48 hours'
-          )
-        )
-        ORDER BY c.created_at DESC
-      `;
+    SELECT 
+      c.*,
+      u.name AS assigned_name,
+      u.role AS assigned_role,
+      u.email AS assigned_email,
+      d.name AS department_name
+    FROM conversations c
+    LEFT JOIN users u ON c.assigned_to = u.id
+    LEFT JOIN departments d ON c.department_id = d.id
+    WHERE c.department_id = $1
+    AND c.country_id = $2
+    AND (
+      c.status = 'active'
+      OR (
+        c.status = 'ended'
+        AND c.ended_at > NOW() - INTERVAL '48 hours'
+      )
+    )
+    ORDER BY c.created_at DESC
+  `;
       params = [user.department_id, user.country_id];
     }
 
