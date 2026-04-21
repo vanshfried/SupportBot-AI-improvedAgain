@@ -22,6 +22,20 @@ export default function CreateUser() {
   const [currentUser, setCurrentUser] = useState(null);
   const [roleToCreate, setRoleToCreate] = useState("support");
   const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState(null);
+
+  const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+  const isStrongPassword = (password) =>
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/.test(password);
+
+  const showToast = (message, type = "error") => {
+    setToast({ message, type });
+
+    setTimeout(() => {
+      setToast(null);
+    }, 3000);
+  };
 
   useEffect(() => {
     getCurrentUser().then((data) => {
@@ -56,18 +70,22 @@ export default function CreateUser() {
   }, []);
 
   const handleChange = (key, value) => {
+    // trim email + name
+    if (key === "email") value = value.trim().toLowerCase();
+    if (key === "name") value = value.trimStart();
+
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
   const isValid =
-    form.name &&
-    form.email &&
-    form.password &&
+    form.name.trim() &&
+    isValidEmail(form.email) &&
+    isStrongPassword(form.password) &&
     form.country_id &&
-    (roleToCreate === "admin" || form.department_id);
+    form.department_id;
 
   const handleSubmit = async () => {
-    if (!isValid) return alert("Please fill all required fields");
+    if (!isValid) return showToast("Please fill all required fields");
 
     setLoading(true);
 
@@ -78,23 +96,21 @@ export default function CreateUser() {
           : await createSupport(form);
 
       if (res?.id) {
-        alert("User created ✅");
+        showToast("User created ✅", "success");
 
         setForm({
           name: "",
           email: "",
           password: "",
           department_id:
-            currentUser?.role === "admin"
-              ? currentUser.department_id
-              : "",
+            currentUser?.role === "admin" ? currentUser.department_id : "",
           country_id: "",
         });
       } else {
-        alert(res?.error || "Failed");
+        showToast(res?.error || "Failed", "error");
       }
     } catch (err) {
-      alert(err?.response?.data?.error || "Something went wrong");
+      showToast(err?.response?.data?.error || "Something went wrong", "error");
     } finally {
       setLoading(false);
     }
@@ -102,6 +118,15 @@ export default function CreateUser() {
 
   return (
     <div className={styles.page}>
+      {toast && (
+        <div
+          className={`${styles.toast} ${
+            toast.type === "success" ? styles.success : styles.errorToast
+          }`}
+        >
+          {toast.message}
+        </div>
+      )}
       {/* Background */}
       <div className={styles.overlay} />
 
@@ -115,9 +140,7 @@ export default function CreateUser() {
             className={styles.logo}
           />
           <h2>Create User</h2>
-          <p className={styles.subtitle}>
-            Add new admin or support member
-          </p>
+          <p className={styles.subtitle}>Add new admin or support member</p>
         </div>
 
         {/* Form */}
@@ -138,6 +161,9 @@ export default function CreateUser() {
               placeholder="Enter email"
               onChange={(e) => handleChange("email", e.target.value)}
             />
+            {form.email && !isValidEmail(form.email) && (
+              <p className={styles.error}>Invalid email format</p>
+            )}
           </div>
 
           <div className={styles.inputGroup}>
@@ -148,6 +174,12 @@ export default function CreateUser() {
               type="password"
               onChange={(e) => handleChange("password", e.target.value)}
             />
+            {form.password && !isStrongPassword(form.password) && (
+              <p className={styles.error}>
+                Password must be 8+ chars, include uppercase, lowercase, number
+                & symbol
+              </p>
+            )}
           </div>
 
           {/* SUPERADMIN ONLY */}
